@@ -1,4 +1,4 @@
-// PIC16F1938 Configuration Bit Settings
+﻿// PIC16F1938 Configuration Bit Settings
 
 // 'C' source line config statements
 
@@ -33,6 +33,9 @@
 #define IRLED RB6
 #define LCD_E  RB2
 #define LCD_RS RB1
+#define FireFly1 RA4
+#define FireFly2 RA5
+
 void LCD_str(char *);
 static void LCD_send4(unsigned char);
 static void LCD_cmd(unsigned char);
@@ -49,6 +52,7 @@ void outHigh();
 void outLow();
 void stopbit();
 void ExecuteInstruction(int);
+void FireFly(char);
 
 char SendingMSG[17] = {"Sending Data"};
 char SecondMSG[16] = {"made by cutman"};
@@ -81,10 +85,16 @@ void main()
      __delay_ms(100);
      RC3 = 0;
     intrInit();
+    FireFly(3);
      while(1){
          AXdisp();
      }
 
+}
+
+void FireFly(char NO){
+    FireFly1 = NO&0b01;
+    FireFly2 = (NO>>1)&0b01;
 }
 void interrupt isr(){               //割り込み関数
     GIE = 0;
