@@ -56,6 +56,7 @@ void stopbit();
 void ExecuteInstruction(int);
 void FireFly(char);
 static void LinearUp(int);
+static void Constanttmp(int,int);
 
 char SendingMSG[17] = {"Sending Data"};
 char SecondMSG[16] = {"made by cutman"};
@@ -91,18 +92,33 @@ void main()
      RC3 = 0;
     intrInit();
     FireFly(3);
-     while(1){
-       __delay_ms(2);
-       sprintf(tmpstr,"Timer:%d",timer);       //tmpstrに文字データをセット
-       LCD_str(tmpstr);                                //LCDにtmpstrを表示
-       __delay_ms(100);
-        //  AXdisp();
-     }
+    LinearUp(50);
+    Constanttmp(50,600);
+
+    FireFly(0);
 
 }
+static void Constanttmp(int TargetTemp,int WholeTime){
+
+    //TargetTempの温度を、WholeTime(sec)だけキープ
+    FireFly(0b11);
+    timer = 0;                              //timerをリセット
+    while(timer<WholeTime){
+        if(AveTMP < TargetTemp){         //TargetTempをキープする部分
+          Furnace1 = 1;                               //炉加熱オン
+          Furnace2 = 1;
+        }else{
+          Furnace1 = 0;
+          Furnace2 = 0;
+        }
+        AXdisp();
+        __delay_ms(200);
+    }
+}
+
 static void LinearUp(int TargetTemp){           //TargetTempまで温度を上げる関数
     AXdisp();
-
+    double tmpSTART;
     tmpSTART = AveTMP; //始めの温度をtmpSTARTにセット
     timer = 0;            //timerをリセット
 
@@ -134,8 +150,8 @@ void interrupt isr(){               //割り込み関数
         INTCONbits.INTF = 0;     //INIT割り込みフラグを落とす
     }
     if(TMR1IF == 1){
-      TMR1H = (55535 >>8);            //タイマー１の初期化（65536-10000=55536);
-      TMR1L = (55535 & 0x00ff);
+      TMR1H = (55545 >>8);            //タイマー１の初期化（65536-10000=55536);
+      TMR1L = (55545 & 0x00ff);
 
       intr_counter++;
       if(intr_counter == 100){        //1sec周期でtimerに１を足す
@@ -149,8 +165,8 @@ void interrupt isr(){               //割り込み関数
 }
 void intrInit(){                    //割り込みの初期設定
     T1CON = 0b00110001;             //内部クロックの4分の１で，プリスケーラ1:8でカウント
-    TMR1H = (55535 >>8);            //タイマー１の初期化（65536-10000=55536);
-    TMR1L = (55535 & 0x00ff);
+    TMR1H = (55545 >>8);            //タイマー１の初期化（65536-10000=55536);
+    TMR1L = (55545 & 0x00ff);
     TMR1IF = 0;                     //タイマー１割り込みフラグを０にする
     TMR1IE = 1;                     //タイマー１割り込みを許可する
     OPTION_REGbits.INTEDG = 0;       //INITピン（RB0）がLowの時に割り込み発生
