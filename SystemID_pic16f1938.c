@@ -35,6 +35,8 @@
 #define LCD_RS RB1
 #define FireFly1 RA4
 #define FireFly2 RA5
+#define Furnace1 RC0
+#define Furnace2 RA6
 
 void LCD_str(char *);
 static void LCD_send4(unsigned char);
@@ -53,6 +55,7 @@ void outLow();
 void stopbit();
 void ExecuteInstruction(int);
 void FireFly(char);
+static void LinearUp(int);
 
 char SendingMSG[17] = {"Sending Data"};
 char SecondMSG[16] = {"made by cutman"};
@@ -63,6 +66,8 @@ char str[14];
 
 void IRreceive();
 int data =0;
+int timer = 0;
+double AveTMP = 0;
 int Bconst = 3500;
 char SystemID = 1;
 unsigned int tmpData = 0;
@@ -87,16 +92,39 @@ void main()
     intrInit();
     FireFly(3);
      while(1){
-         AXdisp();
+       __delay_ms(2);
+       sprintf(tmpstr,"Timer:%d",timer);       //tmpstrに文字データをセット
+       LCD_str(tmpstr);                                //LCDにtmpstrを表示
+       __delay_ms(100);
+        //  AXdisp();
      }
 
 }
+static void LinearUp(int TargetTemp){           //TargetTempまで温度を上げる関数
+    AXdisp();
 
+    tmpSTART = AveTMP; //始めの温度をtmpSTARTにセット
+    timer = 0;            //timerをリセット
+
+    while(AveTMP<TargetTemp){
+        if(AveTMP<(tmpSTART+timer/60)){          //１分に１度上げる部分
+            FireFly(0b10);
+            Furnace1 = 1;                               //炉加熱オン
+            Furnace2 = 1;
+        }else{
+            FireFly(0b01);
+            Furnace1 = 0;
+            Furnace2 = 0;
+        }
+        AXdisp();                                   //LCDに温度を表示
+    }
+}
 void FireFly(char NO){
     FireFly1 = NO&0b01;
     FireFly2 = (NO>>1)&0b01;
 }
 void interrupt isr(){               //割り込み関数
+    volatile static int intr_counter;
     GIE = 0;
     if(INTCONbits.INTF==1){
         RC3 = 1;                    //受信確認LEDオン
@@ -105,16 +133,30 @@ void interrupt isr(){               //割り込み関数
         data = 0;                   //dataの内容を0にする
         INTCONbits.INTF = 0;     //INIT割り込みフラグを落とす
     }
+    if(TMR1IF == 1){
+      TMR1H = (55536 >>8);            //タイマー１の初期化（65536-10000=55536);
+      TMR1L = (55536 & 0x00ff);
 
+      intr_counter++;
+      if(intr_counter == 100){        //1sec周期でtimerに１を足す
+        timer++;
+        intr_counter = 0;
+      }
+      TMR1IF = 0;                     //割り込みフラグを落とす
+    }
     RC3 = 0;                        //受信確認LEDオフ
     GIE = 1;
 }
 void intrInit(){                    //割り込みの初期設定
-    INTCONbits.GIE = 1;              //グローバル割り込みを許可
-    INTCONbits.PEIE = 1;             //割り込みを許可
-
+    T1CON = 0b00110001;             //内部クロックの4分の１で，プリスケーラ1:8でカウント
+    TMR1H = (55536 >>8);            //タイマー１の初期化（65536-10000=55536);
+    TMR1L = (55536 & 0x00ff);
+    TMR1IF = 0;                     //タイマー１割り込みフラグを０にする
+    TMR1IE = 1;                     //タイマー１割り込みを許可する
     OPTION_REGbits.INTEDG = 0;       //INITピン（RB0）がLowの時に割り込み発生
     INTCONbits.INTE = 1;             //INITピン（RB0）の割り込みを許可
+    INTCONbits.GIE = 1;              //グローバル割り込みを許可
+    INTCONbits.PEIE = 1;             //割り込みを許可
 
 }
 void ExecuteInstruction(int data){
@@ -351,7 +393,7 @@ static void AXdisp()                       //LCDにtimerの値、温度を表示
   char tmpstr[14];
   LCD_cmd(0x01);
   __delay_ms(2);
-
+  AveTMP = 0;
   for(int r=0;r<4;r++){
     tmpx = NOWTEMP(r);                       //tmpxに現在の温度をセット
     tmpx1 = tmpx;
@@ -377,6 +419,8 @@ static void AXdisp()                       //LCDにtimerの値、温度を表示
         break;
     }
     __delay_ms(1);
+    AveTMP += tmpx;   //平均値積算
   }
+  AveTMP = AveTMP/4;
   __delay_ms(1000);
 }
