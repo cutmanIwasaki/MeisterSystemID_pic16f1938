@@ -83,22 +83,6 @@ void main()
     intrInit();
      while(1){
          AXdisp();
-//         for(int r=0;r<4;r++){
-//                    LCD_cmd(0x01);
-//                    __delay_ms(2);
-//                    __delay_ms(10);
-//                    tmpData = SystemID ; //systemIDを12bit上位bitにずらし，tmpDataに格納
-//                    tmpData = tmpData<<2;
-//                    tmpData = tmpData + r ;     //温度計番号を11bit目に格納
-//                    tmpData = tmpData<<10;
-//                    tmpData = tmpData + adconvAX(r); //下位10bitにAD変換結果を代入
-//                    sendData(tmpData);  //温度情報を赤外線で送信
-//                    sprintf(str,"%d",tmpData);
-//                    LCD_str(str);             //デバッグ用
-//                    tmpData = 0;
-//
-//                }
-//         __delay_ms(1000);
      }
 
 }
@@ -124,15 +108,10 @@ void intrInit(){                    //割り込みの初期設定
 
 }
 void ExecuteInstruction(int data){
-//    sprintf(str,"%d",data);
 
     int datatmp = data;
     data = data & 0b00011111;        //上位3bitを消去，命令識別番号・命令内容のみ残す
     if(datatmp>>5 == SystemID){      //dataの内容を右に5bit分シフト．SystemIDのみにする．SystemIDと合致しない場合は実行しない．
-//            LCD_cmd(0x01);           //命令データを表示
-//            __delay_ms(2);
-//            LCD_str(str);
-//            __delay_ms(100);
         switch(data){
             case 0: //炉壁AC側オン
                 break;
@@ -158,19 +137,9 @@ void ExecuteInstruction(int data){
                     tmpData = tmpData<<10;
                     tmpData = tmpData + adconvAX(r); //下位10bitにAD変換結果を代入
                     sendData(tmpData);  //温度情報を赤外線で送信
-//                    sprintf(str,"%d",tmpData);
-//                    LCD_str(str);             //デバッグ用
-//                    __delay_ms(1000);
-//                    LCD_cmd(0x01);
-//                    __delay_ms(2);
                     tmpData = 0;
 
                 }
-
-//                LCD_cmd(0x01);
-//                __delay_ms(4);
-//                LCD_str(SendingMSG);
-//                __delay_ms(100);
                 break;
             default:
                 break;
@@ -254,7 +223,6 @@ void LCD_str(char *c) {
 static void LCD_send4(unsigned char c) {
 	PORTC = (PORTC & 0x0F) | c;
 	LCD_E = 1;
-//	NOP();
     __delay_us(10);
 	LCD_E = 0;
 
@@ -274,7 +242,6 @@ static void LCD_cmd(unsigned char cmd) {
 	NOP();
 	LCD_E = 0;
 
-//	wait_50us();
     __delay_us(50);
 	return;
 }
@@ -292,29 +259,23 @@ static void LCD_data(unsigned char cmd) {
 	NOP();
 	LCD_E = 0;
 
-//	wait_50us();
     __delay_us(50);
 	return;
 }
 
 // ==================== LCD初期化 ===========================
 static void LCD_init() {
-//	wait_ms(15);
     __delay_ms(1000);
 	LCD_E = 0;
 	LCD_RS = 0;
 
 	LCD_send4(0x30);
-//	wait_ms(5);
     __delay_ms(5);
 	LCD_send4(0x30);
-//	wait_ms(1);
     __delay_us(100);
 	LCD_send4(0x30);
-//	wait_ms(1);
     __delay_ms(1);
 	LCD_send4(0x20);
-//	wait_ms(1);
     __delay_ms(1);
 
 	LCD_cmd(0x2C);	// DL=0:4bit ,N=1:2lines ,F=0:5*7dot
@@ -322,7 +283,7 @@ static void LCD_init() {
 	LCD_cmd(0x0c);	// Display on ,cursor on ,no blink
 	LCD_cmd(0x06);	// Entry mode (Inc ,No Shift)
 	LCD_cmd(0x01);	// Clear Display
-//	wait_ms(2);
+
     __delay_ms(2);
 
 	return;
